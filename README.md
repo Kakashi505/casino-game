@@ -1,4 +1,4 @@
-# 🎰 Crypto Casino 🎮
+# 🎰 Crypto Gamefi 🎮
 
 **Scissors • Crash • Mines • Turtle • Plinko • Dice • Slot Game**
 A modern crypto-powered gaming platform supporting multi-chain tokens and exciting on-chain games.
@@ -24,6 +24,7 @@ A modern crypto-powered gaming platform supporting multi-chain tokens and exciti
 
 * ₿ Bitcoin (BTC)
 * Ξ Ethereum (ETH)
+* $ Abstract
 * 🟡 Binance Smart Chain (BSC)
 * 🔷 Solana (SOL)
 * 💵 USDT (All major chains)
