@@ -7,7 +7,10 @@ const ethers = require('ethers');
 const TatumAxios = Axios.create();
 TatumAxios.defaults.timeout = 20000;
 TatumAxios.defaults.baseURL = 'https://api.tatum.io/v3';
-TatumAxios.defaults.headers.common['x-api-key'] = config.TATUM_OPTION[config.NETWORK].apikey;
+// Only set API key if Tatum is enabled
+if (config.ENABLE_TATUM) {
+    TatumAxios.defaults.headers.common['x-api-key'] = config.TATUM_OPTION[config.NETWORK].apikey;
+}
 TatumAxios.defaults.headers.common['Content-Type'] = 'application/json';
 TatumAxios.defaults.headers.post['Content-Type'] = 'application/json';
 
@@ -19,6 +22,10 @@ const NativeData = {
 
 const createSubscription = async (data, subscriptionType = Tatum.SubscriptionType.ADDRESS_TRANSACTION) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Skipping subscription creation.');
+            return null;
+        }
         const { address, chain, url } = data;
         const request = {
             type: subscriptionType,
@@ -28,11 +35,18 @@ const createSubscription = async (data, subscriptionType = Tatum.SubscriptionTyp
                 url
             }
         };
-        const response = await TatumAxios.post('/subscription', JSON.stringify(request));
+        const endpoint = '/subscription';
+        const response = await TatumAxios.post(endpoint, JSON.stringify(request));
         console.log("createSubscription=========", response.data);
     }
     catch (err) {
-        console.error({ title: 'tatumController - createSubscription', message: err.message, response: err.response?.data });
+        console.error({ 
+            title: 'tatumController - createSubscription', 
+            message: err.message,
+            endpoint: err.config?.url || '/subscription',
+            status: err.response?.status,
+            response: err.response?.data 
+        });
         return null;
     }
 }
@@ -47,11 +61,18 @@ const getNetworkFromCoinType = (coinType) => {
 const generatePrivateKey = async (data) => {
     try {
         const { mnemonic, index, chain } = data;
-        const response = await TatumAxios.post(`/${chain}/wallet/priv`, JSON.stringify({ index, mnemonic }));
+        const endpoint = `/${chain}/wallet/priv`;
+        const response = await TatumAxios.post(endpoint, JSON.stringify({ index, mnemonic }));
         return response.data;
     }
     catch (err) {
-        console.error({ title: 'tatumController - generatePrivateKey', message: err.message });
+        console.error({ 
+            title: 'tatumController - generatePrivateKey', 
+            message: err.message,
+            endpoint: err.config?.url,
+            status: err.response?.status,
+            response: err.response?.data 
+        });
         return '';
     }
 }
@@ -69,6 +90,10 @@ exports.getNativeData = async (data) => {
 
 exports.createVirtualAccount = async (data) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Skipping createVirtualAccount.');
+            return null;
+        }
         const { xpub, coinType } = data;
         const request = {
             currency: coinType,
@@ -95,11 +120,16 @@ exports.createVirtualAccount = async (data) => {
 
 exports.getBalanceFromAccount = async (data) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Returning zero balance.');
+            return { availableBalance: '0', accountBalance: '0' };
+        }
         const { coinType } = data;
         const keyName = `${coinType}WalletInfo`;
         const accountInfo = await models.settingModel.findOne({ key: keyName });
         if (accountInfo) {
-            const response = await TatumAxios.get(`/ledger/account/${accountInfo.dataObject.virtualAccount.id}/balance`);
+            const endpoint = `/ledger/account/${accountInfo.dataObject.virtualAccount.id}/balance`;
+            const response = await TatumAxios.get(endpoint);
             return response.data;
         }
         else {
@@ -108,13 +138,23 @@ exports.getBalanceFromAccount = async (data) => {
         }
     }
     catch (err) {
-        console.error({ title: 'tatumController - getAccountBalance', message: err.message });
+        console.error({ 
+            title: 'tatumController - getAccountBalance', 
+            message: err.message,
+            endpoint: err.config?.url,
+            status: err.response?.status,
+            response: err.response?.data 
+        });
         return null;
     }
 }
 
 exports.getDepositAddressFromAccount = async (data) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Cannot generate deposit address.');
+            return null;
+        }
         const { coinType } = data;
         const keyName = `${coinType === 'TRX' ? 'TRON' : coinType === 'BNB' ? 'BSC' : coinType}WalletInfo`;
         console.log(keyName)
@@ -123,7 +163,8 @@ exports.getDepositAddressFromAccount = async (data) => {
             const chain = getNetworkFromCoinType(coinType);
             // console.log(chain)
             // console.log(accountInfo.dataObject.virtualAccount.id)
-            const addressData = await TatumAxios.post(`/offchain/account/${accountInfo.dataObject.virtualAccount.id}/address`);
+            const endpoint = `/offchain/account/${accountInfo.dataObject.virtualAccount.id}/address`;
+            const addressData = await TatumAxios.post(endpoint);
             // console.log(addressData)
             const privateKey = await generatePrivateKey({ index: addressData.data.derivationKey, chain, mnemonic: accountInfo.dataObject.mnemonic });
             await createSubscription({ url: config.SUBSCRIBE_URL, chain: addressData.data.currency, address: addressData.data.address });
@@ -135,7 +176,13 @@ exports.getDepositAddressFromAccount = async (data) => {
         }
     }
     catch (err) {
-        console.error({ title: 'tatumController - getDepositAddressFromAccount', message: err.message });
+        console.error({ 
+            title: 'tatumController - getDepositAddressFromAccount', 
+            message: err.message,
+            endpoint: err.config?.url,
+            status: err.response?.status,
+            response: err.response?.data 
+        });
         return null;
     }
 }
@@ -143,17 +190,28 @@ exports.getDepositAddressFromAccount = async (data) => {
 exports.getGasPrice = async (data) => {
     try {
         const { coinType } = data;
-        const response = await TatumAxios.get(`/blockchain/fee/${coinType}`);
+        const endpoint = `/blockchain/fee/${coinType}`;
+        const response = await TatumAxios.get(endpoint);
         return response.data;
     }
     catch (err) {
-        console.error({ title: 'tatumController - getGasPrice', message: err.message });
+        console.error({ 
+            title: 'tatumController - getGasPrice', 
+            message: err.message,
+            endpoint: err.config?.url,
+            status: err.response?.status,
+            response: err.response?.data 
+        });
         return null;
     }
 }
 
 exports.createBitcoinWallet = async () => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Cannot create Bitcoin wallet.');
+            return null;
+        }
         const response = await TatumAxios.get('/bitcoin/wallet');
         const { mnemonic, xpub } = response.data;
         return { mnemonic, xpub };
@@ -217,6 +275,10 @@ exports.withdrawBTCFromAccount = async (data) => {
 
 exports.createEthereumWallet = async () => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Cannot create Ethereum wallet.');
+            return null;
+        }
         const response = await TatumAxios.get('/ethereum/wallet');
         const { mnemonic, xpub } = response.data;
         return { mnemonic, xpub };
@@ -269,6 +331,10 @@ exports.withdrawETHFromAccount = async (data) => {
 
 exports.createTronWallet = async () => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Cannot create Tron wallet.');
+            return null;
+        }
         const response = await TatumAxios.get('/tron/wallet');
         const { mnemonic, xpub } = response.data;
         return { mnemonic, xpub };
@@ -335,6 +401,10 @@ exports.withdrawTRONFromAccount = async (data) => {
 
 exports.createBSCWallet = async () => {
     try {
+        if (!config.ENABLE_TATUM) {
+            console.log('Tatum API is disabled. Cannot create BSC wallet.');
+            return null;
+        }
         const response = await TatumAxios.get('/bsc/wallet');
         const { mnemonic, xpub } = response.data;
         return { mnemonic, xpub };

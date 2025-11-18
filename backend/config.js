@@ -106,5 +106,6 @@ module.exports = {
     NETWORK: 'mainnet',
     // SUBSCRIBE_URL: 'http://212.24.111.179:5000/api/v0/payment/webhook-handler',
     SUBSCRIBE_URL: 'https://backend.memewarsx.com/api/v0/payment/webhook-handler',
-    DEV_MDOE: false
+    DEV_MDOE: false,
+    ENABLE_TATUM: false // Set to false to disable Tatum API (for development without API key)
 };
