@@ -4,6 +4,7 @@ const tatumController = require('./tatumController');
 const Axios = require('axios');
 const SocketManager = require('../socket/Manager');
 const { v4: uuidv4 } = require('uuid');
+const config = require('../config');
 
 const AssetList = [
     {
@@ -29,6 +30,10 @@ const AssetList = [
 
 exports.getDepositAddressFromAccount = async (req, res) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            return res.json({ status: false, data: null, message: 'Tatum API is disabled. Please enable it in config.js to use deposit addresses.' });
+        }
+        
         let { coinType, type, userId } = req.body;
         if (type !== 'native') {
             coinType = await tatumController.getNativeData({ type });
@@ -53,7 +58,7 @@ exports.getDepositAddressFromAccount = async (req, res) => {
                     return res.json({ status: true, data: data });
                 }
                 else {
-                    return res.json({ status: false, data: response, message: 'API Error' });
+                    return res.json({ status: false, data: response, message: 'Tatum API Error - Unable to generate deposit address' });
                 }
             }
         }
@@ -69,6 +74,10 @@ exports.getDepositAddressFromAccount = async (req, res) => {
 
 exports.getBalanceFromAccount = async (req, res) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            return res.json({ status: true, data: { availableBalance: '0', accountBalance: '0' } });
+        }
+        
         const { coinType } = req.body;
         if (coinType) {
             let response = await tatumController.getBalanceFromAccount({ coinType });
@@ -76,7 +85,7 @@ exports.getBalanceFromAccount = async (req, res) => {
                 return res.json({ status: true, data: response });
             }
             else {
-                return res.json({ status: false, data: response, message: 'API Error' });
+                return res.json({ status: false, data: { availableBalance: '0', accountBalance: '0' }, message: 'Tatum API Error - Returning zero balance' });
             }
         }
         else {
@@ -91,6 +100,10 @@ exports.getBalanceFromAccount = async (req, res) => {
 
 exports.withdrawFromAccount = async (req, res) => {
     try {
+        if (!config.ENABLE_TATUM) {
+            return res.json({ status: false, data: null, message: 'Tatum API is disabled. Please enable it in config.js to use withdrawals.' });
+        }
+        
         const { coinType } = req.body;
 
         if (coinType.name === 'BTC')
