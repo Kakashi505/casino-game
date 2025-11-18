@@ -32,7 +32,7 @@ const createSubscription = async (data, subscriptionType = Tatum.SubscriptionTyp
         console.log("createSubscription=========", response.data);
     }
     catch (err) {
-        console.error({ title: 'tatumController - createSubscription', message: err.message });
+        console.error({ title: 'tatumController - createSubscription', message: err.message, response: err.response?.data });
         return null;
     }
 }
@@ -88,7 +88,7 @@ exports.createVirtualAccount = async (data) => {
         return response.data;
     }
     catch (err) {
-        console.error({ title: 'tatumController - createVirtualAccount', message: err.message });
+        console.error({ title: 'tatumController - createVirtualAccount', message: err.message, response: err.response?.data });
         return null;
     }
 }
@@ -159,7 +159,7 @@ exports.createBitcoinWallet = async () => {
         return { mnemonic, xpub };
     }
     catch (err) {
-        console.error({ title: 'tatumController - createBitCoinAccount', message: err.message });
+        console.error({ title: 'tatumController - createBitCoinAccount', message: err.message, response: err.response?.data });
         return null;
     }
 }
@@ -222,7 +222,7 @@ exports.createEthereumWallet = async () => {
         return { mnemonic, xpub };
     }
     catch (err) {
-        console.error({ title: 'tatumController - createEthereumAccount', message: err.message });
+        console.error({ title: 'tatumController - createEthereumAccount', message: err.message, response: err.response?.data });
         return null;
     }
 }
@@ -274,7 +274,7 @@ exports.createTronWallet = async () => {
         return { mnemonic, xpub };
     }
     catch (err) {
-        console.error({ title: 'tatumController - createTronWallet', message: err.message });
+        console.error({ title: 'tatumController - createTronWallet', message: err.message, response: err.response?.data });
         return null;
     }
 }
@@ -340,7 +340,7 @@ exports.createBSCWallet = async () => {
         return { mnemonic, xpub };
     }
     catch (err) {
-        console.error({ title: 'tatumController - createTronWallet', message: err.message });
+        console.error({ title: 'tatumController - createBSCWallet', message: err.message, response: err.response?.data });
         return null;
     }
 }
